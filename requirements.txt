@@ -12,9 +12,8 @@ plotly.express
 openpyxl
 yfinance
 datetime
-sklearn.linear_model
 sort_dataframeby_monthorweek
-string
+sklearn
 ta
 talib
 pendulum
