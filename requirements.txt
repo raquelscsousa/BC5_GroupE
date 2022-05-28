@@ -15,5 +15,4 @@ datetime
 sort_dataframeby_monthorweek
 sklearn
 ta
-TA-Lib
 pendulum
