@@ -16,7 +16,7 @@ from datetime import date
 import string
 from sklearn.linear_model import LinearRegression
 import requests
-import sort_dataframeby_monthorweek as sd
+from sort_dataframeby_monthorweek import Sort_Dataframeby_Month
 
 #### Datasets
 info = pd.DataFrame()
@@ -727,7 +727,7 @@ m_returns['month_name'] = m_returns['date'].dt.month_name()
 m_returns['year'] = m_returns['year'].astype(str)
 
 m_returns = m_returns.groupby(['year', 'month_name']).mean().mean(axis=1).unstack()
-m_returns = sd.Sort_Dataframeby_Month(m_returns.T.reset_index(), 'month_name').set_index('month_name').T
+m_returns = Sort_Dataframeby_Month(m_returns.T.reset_index(), 'month_name').set_index('month_name').T
 returns_heatmap = px.imshow(m_returns, title='Average returns per month',
                             labels=dict(x="Months", y="Years", color="Average Returns"),
                             color_continuous_scale='rdylgn')
