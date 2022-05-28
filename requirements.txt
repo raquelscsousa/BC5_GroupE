@@ -16,4 +16,3 @@ sort_dataframeby_monthorweek
 sklearn
 ta
 pendulum
-talib
