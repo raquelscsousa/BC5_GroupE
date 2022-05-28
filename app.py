@@ -16,7 +16,7 @@ from datetime import date
 import string
 from sklearn.linear_model import LinearRegression
 import requests
-from sort_dataframeby_monthorweek import Sort_Dataframeby_Month
+import sort_dataframeby_monthorweek as sd
 
 #### Datasets
 info = pd.DataFrame()
@@ -715,47 +715,6 @@ def gen_commodities():
 
 commodities = gen_commodities()
 
-##HEATMAP
-close = df_daily['close'].unstack('ticker').copy()
-close = close.loc[(close.index >= '2019-01-01')]
-returns = (np.log(close / close.shift()))
-# returns = returns.drop(columns = ['ATOM','LUNA'])
-m_returns = returns.resample('m').mean().reset_index()
-m_returns['year'] = (m_returns['date'].dt.year)
-# m_returns['month'] = m_returns['date'].dt.month
-m_returns['month_name'] = m_returns['date'].dt.month_name()
-m_returns['year'] = m_returns['year'].astype(str)
-
-m_returns = m_returns.groupby(['year', 'month_name']).mean().mean(axis=1).unstack()
-m_returns = Sort_Dataframeby_Month(m_returns.T.reset_index(), 'month_name').set_index('month_name').T
-returns_heatmap = px.imshow(m_returns, title='Average returns per month',
-                            labels=dict(x="Months", y="Years", color="Average Returns"),
-                            color_continuous_scale='rdylgn')
-returns_heatmap.update_coloraxes(cmin=-0.04, cmid=0, cmax=0.04)
-returns_heatmap.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', })
-
-a = pd.DataFrame(df_daily.loc[:, 'close']).reset_index()
-a['date'] = a['date'].astype('string')
-b = a[pd.to_datetime(a['date']).dt.date >= (date.today() - datetime.timedelta(2))].set_index('ticker').pivot(
-    columns='date').round(4)
-b.columns = b.columns.get_level_values(1)
-
-dates = pd.to_datetime(date.today() - datetime.timedelta(weeks=10))
-close_df = df_daily['volume'].unstack('ticker').sort_index().dropna()
-close_df = close_df.loc[close_df.index > dates]
-close_df = close_df.diff().mean(axis=1).cumsum()
-close_df = close_df.sort_index().reset_index().rename(columns={0: 'Cumulative Volume', 'date': 'Date'})
-
-return_cm = close_df
-return_cm['Color'] = 'green'
-return_cm.loc[return_cm['Cumulative Volume'] < 0, 'Color'] = 'red'
-
-date1 = return_cm['Date'].min()
-plot = px.bar(return_cm, y='Cumulative Volume', x='Date', title=f'Market:10 weeks cumulative volume',
-              color='Color',
-              color_discrete_sequence=return_cm.Color.unique())
-plot.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', })
-
 import pendulum
 
 timezones = [f'Current Date Time in Lisbon :{datetime.datetime.now(pendulum.timezone("Etc/GMT-1"))}',
@@ -787,7 +746,7 @@ def gen_fx():
     start = time.time()
 
     key = '54594d7278e0fa3c0831a72c60e04b8d'
-    fx = ['EUR', 'GBP', 'CHF','JPY']
+    fx = ['EUR', 'GBP', 'CHF', 'JPY']
     df = real_time_forex(key, fx)['close'].unstack('ticker')
 
     end = time.time()
@@ -797,11 +756,13 @@ def gen_fx():
 
 
 fx = gen_fx()
+fx['USD'] = 1
+
+# TABLE
+
 
 ###################### APP Structure
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-
-server = app.server
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
@@ -833,9 +794,9 @@ mainpage = html.Div([
         html.Div([
             html.Div([
                 #### Clock & Date
-                html.P('Choose the currency:', style={'display':'inline-block'} ),
-                dcc.RadioItems(fx.columns,id='currency',value=fx.columns[1],inline=True,
-                               style={'margin-right':'5px', 'display':'inline-block'}),
+                html.P('Choose the currency:', style={'display': 'inline-block'}),
+                dcc.RadioItems(fx.columns, id='currency', value=fx.columns[-1], inline=True,
+                               style={'margin-right': '5px', 'display': 'inline-block'}),
                 html.Br(),
                 html.Div([
                     html.H6('Timezones'),
@@ -847,30 +808,7 @@ mainpage = html.Div([
                 html.Br(),
                 html.Br(),
                 html.Div([
-                    dash_table.DataTable(data=b.reset_index().to_dict('records'),
-                                         columns=[{"name": i, "id": i} for i in b.reset_index().columns],
-                                         style_cell={'textAlign': 'center',
-                                                     'font-family': 'Arial, Helvetica, sans-serif'},
-                                         style_data_conditional=[
-                                             {'if': {
-                                                 'column_id': '2022-05-27',
-                                                 'filter_query': '{2022-05-27} > {2022-05-26}'},
-                                                 'backgroundColor': '#3D9970',
-                                                 'color': 'white'},
-                                             {'if': {
-                                                 'column_id': '2022-05-27',
-                                                 'filter_query': '{2022-05-27} < {2022-05-26}'},
-                                                 'backgroundColor': 'red',
-                                                 'color': 'white'},
-                                         ],
-                                         style_as_list_view=True,
-                                         style_header={
-                                             'backgroundColor': 'grey',
-                                             'fontWeight': 'bold'
-                                         },
-                                         )
-
-                ]),
+                ], id='table'),
             ]),
         ], className='boxes', style={'width': '30%'}),
 
@@ -878,12 +816,12 @@ mainpage = html.Div([
             #### Heatmap + Bar Plot
             html.Div([
                 html.H4('Monthly returns'),
-                dcc.Graph(figure=returns_heatmap),
+                dcc.Graph(id='returns_heatmap'),
             ]),
             html.Br(),
             html.Div([
                 html.H4('Cumulative Volume'),
-                dcc.Graph(figure=plot),
+                dcc.Graph(id='plot'),
             ]),
         ], className='boxes', style={'width': '30%'}),
 
@@ -939,6 +877,10 @@ secpage = html.Div([  # main container
                      value='ADA',
                      style={'border-color': 'gray', 'position': 'relative'}
                      ),
+        html.P('Choose the currency: ', style={'display': 'inline-block'}),
+        dcc.RadioItems(fx.columns, id='currencysec', value=fx.columns[-1], inline=True,
+                       style={'margin-right': '5px', 'display': 'inline-block'}),
+        html.P('DISCLAMER: HOURLY PREDICTIONS E INDICATORS NÃO SÃO AFETADOS PELA MUDANÇA DE CURRENCY!',style={'font-weight': 'bold'}),
     ], className='header'),
     html.Br(),
     #### First row
@@ -956,7 +898,6 @@ secpage = html.Div([  # main container
                     html.P(id='pct_change'),
                     html.P(id='pct_changem'),
                     html.P(id='valuetd'),
-
 
                 ], className='boxes', style={'width': '40%', 'margin-right': '20px', 'margin-bottom': '20px'}),
             #### Time Series graph
@@ -1018,19 +959,40 @@ secpage = html.Div([  # main container
 
 # callback for the overview page
 @callback(Output('fig_', 'figure'),
-          Input('com_drop', 'value'),
-          Input('currency','value'))
+          Output('returns_heatmap', 'figure'),
+          Output('plot', 'figure'),
+          Output('table', 'children'),
+          Input('currency', 'value'),
+          Input('com_drop', 'value'))
+def candlestick(coin, ticker):
+    # converts dolar OHLC values to a specified coin
+    fx1 = fx.copy()
+    fx1.index = pd.to_datetime(fx.index)
+    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date').sort_values(
+        ['ticker', 'date']).set_index(['ticker', 'date'])
+    for i in fx1.columns:
+        convert_df[f'{i}'] = convert_df[f'{i}'].fillna(method='ffill')
 
-def candlestick(ticker,currency):
-    currency_=fx[currency]
+    for i in ['open', 'close', 'high', 'low']:
+        convert_df[f'{i}'] = convert_df[f'{i}'] * convert_df[f'{coin}']
+
+    convert_df2 = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date').sort_values(
+        ['ticker', 'date']).set_index(['ticker', 'date'])
+    for i in fx1.columns:
+        convert_df2[f'{i}'] = convert_df2[f'{i}'].fillna(method='ffill')
+
+    for i in ['open', 'close', 'high', 'low']:
+        convert_df2[f'{i}'] = convert_df2[f'{i}'] * convert_df2[f'{coin}']
+
+    # CANDLESTICK
     import plotly.graph_objects as go
-    commodities1 = commodities.loc[commodities.index.get_level_values(0) == ticker]
-    commodities1 = commodities1.reset_index()
-    fig = go.Figure(data=[go.Candlestick(x=commodities1['date'],
-                                         open=commodities1['open'],
-                                         high=commodities1['high'],
-                                         low=commodities1['low'],
-                                         close=commodities1['close'])])
+    convert_df1 = convert_df.loc[convert_df.index.get_level_values(0) == ticker]
+    convert_df1 = convert_df1.reset_index()
+    fig = go.Figure(data=[go.Candlestick(x=convert_df1['date'],
+                                         open=convert_df1['open'],
+                                         high=convert_df1['high'],
+                                         low=convert_df1['low'],
+                                         close=convert_df1['close'])])
     fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', },
                       title=f'{ticker.upper()} Candlestick', yaxis_title=f'{(ticker).upper()} / USD',
                       xaxis_title='Date')
@@ -1038,22 +1000,107 @@ def candlestick(ticker,currency):
     fig.update_yaxes(showgrid=True, showline=True, gridwidth=1, gridcolor='#EBEBEB', linecolor='#EBEBEB')
     fig.update_xaxes(showgrid=True, showline=True, gridwidth=1, gridcolor='#EBEBEB', linecolor='#EBEBEB',
                      rangeslider_visible=True)
-    return fig
+
+    ##HEATMAP
+    close = convert_df2['close'].unstack('ticker').copy()
+    close = close.loc[(close.index >= '2019-01-01')]
+    returns = (np.log(close / close.shift()))
+    m_returns = returns.resample('m').mean().reset_index()
+    m_returns['year'] = (m_returns['date'].dt.year)
+    m_returns['month_name'] = m_returns['date'].dt.month_name()
+    m_returns['year'] = m_returns['year'].astype(str)
+
+    m_returns = m_returns.groupby(['year', 'month_name']).mean().mean(axis=1).unstack()
+    m_returns = sd.Sort_Dataframeby_Month(m_returns.T.reset_index(), 'month_name').set_index('month_name').T
+    returns_heatmap = px.imshow(m_returns, title='Average returns per month',
+                                labels=dict(x="Months", y="Years", color="Average Returns"),
+                                color_continuous_scale='rdylgn')
+    returns_heatmap.update_coloraxes(cmin=-0.04, cmid=0, cmax=0.04)
+    returns_heatmap.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', })
+
+    # VOLUME BARS
+    dates = pd.to_datetime(date.today() - datetime.timedelta(weeks=10))
+    close_df = df_daily['volume'].unstack('ticker').sort_index().dropna()
+    close_df = close_df.loc[close_df.index > dates]
+    close_df = close_df.diff().mean(axis=1).cumsum()
+    close_df = close_df.sort_index().reset_index().rename(columns={0: 'Cumulative Volume', 'date': 'Date'})
+
+    return_cm = close_df
+    return_cm['Color'] = 'green'
+    return_cm.loc[return_cm['Cumulative Volume'] < 0, 'Color'] = 'red'
+
+    date1 = return_cm['Date'].min()
+    plot = px.bar(return_cm, y='Cumulative Volume', x='Date', title=f'Market:10 weeks cumulative volume',
+                  color='Color',
+                  color_discrete_sequence=return_cm.Color.unique())
+    plot.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', })
+
+    # TABLE
+    a = pd.DataFrame(convert_df2.loc[:, 'close']).reset_index()
+    a['date'] = a['date'].astype('string')
+    b = a[pd.to_datetime(a['date']).dt.date >= (date.today() - datetime.timedelta(3))].set_index('ticker').pivot(
+        columns='date').round(4)
+    b.columns = b.columns.get_level_values(1)
+
+    return fig, returns_heatmap, plot, dash_table.DataTable(data=b.reset_index().to_dict('records'),
+                                                            columns=[{"name": i, "id": i} for i in
+                                                                     b.reset_index().columns],
+                                                            style_cell={'textAlign': 'center',
+                                                                        'font-family': 'Arial, Helvetica, sans-serif'},
+                                                            style_data_conditional=[
+                                                                {'if': {
+                                                                    'column_id': str(
+                                                                        date.today() - datetime.timedelta(1)),
+                                                                    'filter_query': '{' + str(
+                                                                        date.today() - datetime.timedelta(
+                                                                            1)) + '} > {' + str(
+                                                                        date.today() - datetime.timedelta(2)) + '}'},
+                                                                    'backgroundColor': '#3D9970',
+                                                                    'color': 'white'},
+                                                                {'if': {
+                                                                    'column_id': str(
+                                                                        date.today() - datetime.timedelta(1)),
+                                                                    'filter_query': '{' + str(
+                                                                        date.today() - datetime.timedelta(
+                                                                            1)) + '} < {' + str(
+                                                                        date.today() - datetime.timedelta(2)) + '}'},
+                                                                    'backgroundColor': 'red',
+                                                                    'color': 'white'}
+                                                            ],
+                                                            style_as_list_view=True,
+                                                            style_header={
+                                                                'backgroundColor': 'grey',
+                                                                'fontWeight': 'bold'
+                                                            },
+                                                            )
 
 
 @callback(
     Output('subfig_', 'figure'),
-    Input('com_drop2', 'value'))
-def gen_commodities_plot(drop, date='2019-01-01'):
+    Input('com_drop2', 'value'),
+    Input('currency', 'value'))
+def gen_commodities_plot(drop, coin, date='2019-01-01'):
+    # converts dolar OHLC values to a specified coin
+    fx1 = fx.copy()
+    fx1.index = pd.to_datetime(fx.index)
+    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date').sort_values(
+        ['ticker', 'date']).set_index(['ticker', 'date'])
+    for i in fx1.columns:
+        convert_df[f'{i}'] = convert_df[f'{i}'].fillna(method='ffill')
+
+    for i in ['open', 'close', 'high', 'low']:
+        convert_df[f'{i}'] = convert_df[f'{i}'] * convert_df[f'{coin}']
+
     ticker = drop[0]
     ticker2 = drop[1]
-    df = commodities.reset_index().loc[commodities.index.get_level_values(0) == ticker, ['date', 'close']].set_index(
+    df = convert_df.reset_index().loc[convert_df.index.get_level_values(0) == ticker, ['date', 'close']].set_index(
         'date').rename(columns={'close': f'{ticker}'})
     df = df.loc[df.index >= date]
 
-    df1 = commodities.loc[commodities.index.get_level_values(0) == ticker2, ['date', 'close']].set_index('date').rename(
-        columns={'close': f'{ticker2}'})
+    df1 = convert_df.reset_index().loc[convert_df.index.get_level_values(0) == ticker2, ['date', 'close']].set_index(
+        'date').rename(columns={'close': f'{ticker2}'})
     df1 = df1.loc[df1.index >= date]
+
     from plotly.subplots import make_subplots
     subfig = make_subplots(specs=[[{"secondary_y": True}]])
     fig = px.line(df[f'{ticker}'], y=f'{ticker}', title=f'{str(ticker).upper()} Price USD', labels={'y': f'{ticker}'})
@@ -1089,17 +1136,28 @@ def gen_commodities_plot(drop, date='2019-01-01'):
           Output('text', 'children'),
           Output('pred_', 'figure'),
           Output('pred_d', 'figure'),
-          Output('pct_change','children'),
-          Output('pct_changem','children'),
-          Output('valuetd','children'),
+          Output('pct_change', 'children'),
+          Output('pct_changem', 'children'),
+          Output('valuetd', 'children'),
           Input('crypto_drop', 'value'),
           Input('datepick', 'start_date'),
           Input('datepick', 'end_date'),
           Input('time_input', 'value'),
-          Input('day_input', 'value'))
-def update_info(crypto, start_date, end_date, timestamp, daystamp):
-    df = df_daily.loc[[crypto], ['MOM_7', 'ROC_7']]
+          Input('day_input', 'value'),
+          Input('currencysec', 'value'))
+def update_info(crypto, start_date, end_date, timestamp, daystamp,coin):
+    # converts dolar OHLC values to a specified coin
+    fx1 = fx.copy()
+    fx1.index = pd.to_datetime(fx.index)
+    convert_df = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date').sort_values(
+        ['ticker', 'date']).set_index(['ticker', 'date'])
+    for i in fx1.columns:
+        convert_df[f'{i}'] = convert_df[f'{i}'].fillna(method='ffill')
 
+    for i in ['open', 'close', 'high', 'low']:
+        convert_df[f'{i}'] = convert_df[f'{i}'] * convert_df[f'{coin}']
+
+    df = df_daily.loc[[crypto], ['MOM_7', 'ROC_7']]
     momentum = px.scatter(df, x="MOM_7", y="ROC_7", marginal_y="violin", trendline="lowess", template="simple_white")
 
     df2 = df_daily.loc[[crypto], ['EMA_7', 'EMA_20']]
@@ -1110,7 +1168,7 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp):
     df3 = df_daily.loc[[crypto], ['ATR_7', 'STD_7', 'RSI_7']].dropna()
     volatility = px.scatter(df3, x="ATR_7", y="STD_7", size="RSI_7", color='RSI_7', log_x=True, log_y=True, size_max=20)
 
-    df4 = df_daily.loc[[crypto], ['close']].dropna()
+    df4 = convert_df.loc[[crypto], ['close']].dropna()
     df4 = df4.loc[df4.index.get_level_values(0) == crypto].droplevel('ticker')[['close']]
     timeseries = px.line(df4[(df4.index <= end_date) & (df4.index >= start_date)])
 
@@ -1134,7 +1192,7 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp):
     timeseries.update_xaxes(showgrid=True, showline=True, gridwidth=1, gridcolor='#EBEBEB', linecolor='#EBEBEB')
     timeseries.update_yaxes(showgrid=True, showline=True, gridwidth=1, gridcolor='#EBEBEB', linecolor='#EBEBEB')
 
-    data = df_daily.loc[df_daily.index.get_level_values(0) == crypto]
+    data = convert_df.loc[convert_df.index.get_level_values(0) == crypto]
     data = data.loc[data.index.get_level_values(1) > '2022-01-01']
 
     a, b = make_predictions(data, timestamp)
@@ -1170,11 +1228,17 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp):
     pred_d.update_xaxes(showgrid=True, showline=True, gridwidth=1, gridcolor='#EBEBEB', linecolor='#EBEBEB',
                         rangeslider_visible=True)
 
-    aux = df_daily.loc[df_daily.index.get_level_values(0) == crypto]['close']
-    pct_change = ('% of change from yesterday: ', np.round(((aux[aux.index.get_level_values(1) == str(date.today())].item() - aux[aux.index.get_level_values(1) == str(date.today() - datetime.timedelta(30))].item()) / (aux[aux.index.get_level_values(1) == str(date.today() - datetime.timedelta(30))].item())*100),4))
-    pct_changem = ('% of change from a month ago: ', np.round(((aux[aux.index.get_level_values(1) == str(date.today())].item() - aux[aux.index.get_level_values(1) == str(date.today() - datetime.timedelta(30))].item()) / (aux[aux.index.get_level_values(1) == str(date.today() - datetime.timedelta(30))].item())*100),4))
-    valuetd = ('Value of the coin today: ',np.round(aux[aux.index.get_level_values(1) == str(date.today())].item(),4))
-    return momentum, overlap, volatility, timeseries, title, img, text, pred, pred_d,pct_change, pct_changem,valuetd
+    aux = convert_df.loc[convert_df.index.get_level_values(0) == crypto]['close']
+    pct_change = ('% of change from yesterday: ', np.round(((aux[aux.index.get_level_values(1) == str(
+        date.today()- datetime.timedelta(1))].item() - aux[aux.index.get_level_values(1) == str(
+        date.today() - datetime.timedelta(2))].item()) / (aux[aux.index.get_level_values(1) == str(
+        date.today() - datetime.timedelta(2))].item()) * 100), 4))
+    pct_changem = ('% of change from a month ago: ', np.round(((aux[aux.index.get_level_values(1) == str(
+        date.today()- datetime.timedelta(1))].item() - aux[aux.index.get_level_values(1) == str(
+        date.today() - datetime.timedelta(30))].item()) / (aux[aux.index.get_level_values(1) == str(
+        date.today() - datetime.timedelta(30))].item()) * 100), 4))
+    valuetd = ('Value of the coin today: ', np.round(aux[aux.index.get_level_values(1) == str(date.today()- datetime.timedelta(1))].item(), 4))
+    return momentum, overlap, volatility, timeseries, title, img, text, pred, pred_d, pct_change, pct_changem, valuetd
 
 
 @callback(Output('main', 'children'),
