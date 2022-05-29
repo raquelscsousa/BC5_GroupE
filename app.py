@@ -764,6 +764,8 @@ fx['USD'] = 1
 ###################### APP Structure
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+server = app.server
+
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(id='main')
