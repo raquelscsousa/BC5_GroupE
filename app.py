@@ -764,8 +764,6 @@ fx['USD'] = 1
 ###################### APP Structure
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-server = app.server
-
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(id='main')
@@ -970,7 +968,7 @@ def candlestick(coin, ticker):
     # converts dolar OHLC values to a specified coin
     fx1 = fx.copy()
     fx1.index = pd.to_datetime(fx.index)
-    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date').sort_values(
+    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date',how='outer').sort_values(
         ['ticker', 'date']).set_index(['ticker', 'date'])
     for i in fx1.columns:
         convert_df[f'{i}'] = convert_df[f'{i}'].fillna(method='ffill')
@@ -978,7 +976,7 @@ def candlestick(coin, ticker):
     for i in ['open', 'close', 'high', 'low']:
         convert_df[f'{i}'] = convert_df[f'{i}'] * convert_df[f'{coin}']
 
-    convert_df2 = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date').sort_values(
+    convert_df2 = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date',how='outer').sort_values(
         ['ticker', 'date']).set_index(['ticker', 'date'])
     for i in fx1.columns:
         convert_df2[f'{i}'] = convert_df2[f'{i}'].fillna(method='ffill')
@@ -1052,20 +1050,18 @@ def candlestick(coin, ticker):
                                                             style_data_conditional=[
                                                                 {'if': {
                                                                     'column_id': str(
-                                                                        date.today() - datetime.timedelta(1)),
+                                                                        date.today()),
                                                                     'filter_query': '{' + str(
-                                                                        date.today() - datetime.timedelta(
-                                                                            1)) + '} > {' + str(
-                                                                        date.today() - datetime.timedelta(2)) + '}'},
+                                                                        date.today()) + '} > {' + str(
+                                                                        date.today() - datetime.timedelta(1)) + '}'},
                                                                     'backgroundColor': '#3D9970',
                                                                     'color': 'white'},
                                                                 {'if': {
                                                                     'column_id': str(
-                                                                        date.today() - datetime.timedelta(1)),
+                                                                        date.today()),
                                                                     'filter_query': '{' + str(
-                                                                        date.today() - datetime.timedelta(
-                                                                            1)) + '} < {' + str(
-                                                                        date.today() - datetime.timedelta(2)) + '}'},
+                                                                        date.today()) + '} < {' + str(
+                                                                        date.today() - datetime.timedelta(1)) + '}'},
                                                                     'backgroundColor': 'red',
                                                                     'color': 'white'}
                                                             ],
@@ -1085,7 +1081,7 @@ def gen_commodities_plot(drop, coin, date='2019-01-01'):
     # converts dolar OHLC values to a specified coin
     fx1 = fx.copy()
     fx1.index = pd.to_datetime(fx.index)
-    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date').sort_values(
+    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date',how='outer').sort_values(
         ['ticker', 'date']).set_index(['ticker', 'date'])
     for i in fx1.columns:
         convert_df[f'{i}'] = convert_df[f'{i}'].fillna(method='ffill')
@@ -1151,7 +1147,7 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp,coin):
     # converts dolar OHLC values to a specified coin
     fx1 = fx.copy()
     fx1.index = pd.to_datetime(fx.index)
-    convert_df = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date').sort_values(
+    convert_df = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date',how='outer').sort_values(
         ['ticker', 'date']).set_index(['ticker', 'date'])
     for i in fx1.columns:
         convert_df[f'{i}'] = convert_df[f'{i}'].fillna(method='ffill')
