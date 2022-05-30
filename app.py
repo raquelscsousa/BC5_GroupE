@@ -717,10 +717,14 @@ commodities = gen_commodities()
 
 import pendulum
 
-timezones = [f'Current Date Time in Lisbon :{datetime.datetime.now(pendulum.timezone("Etc/GMT-1"))}',
-             f'Current Date Time in Switzerland :{datetime.datetime.now(pendulum.timezone("Etc/GMT-2"))}',
-             f'Current Date Time in London :{datetime.datetime.now(pendulum.timezone("Etc/GMT-1"))}',
-             f'Current Date Time in Japan :{datetime.datetime.now(pendulum.timezone("Etc/GMT-9"))}']
+timezones = {
+    f'Lisbon, Portugal': datetime.datetime.strftime(datetime.datetime.now(pendulum.timezone("Etc/GMT-1")), "%d %b %y | %H:%M:%S"),
+    f'Zurich, Switzerland': datetime.datetime.strftime(datetime.datetime.now(pendulum.timezone("Etc/GMT-2")),
+                                               "%d %b %y | %H:%M:%S"),
+    f'London, England': datetime.datetime.strftime(datetime.datetime.now(pendulum.timezone("Etc/GMT-1")), "%d %b %y | %H:%M:%S"),
+    f'Tokyo, Japan': datetime.datetime.strftime(datetime.datetime.now(pendulum.timezone("Etc/GMT-9")), "%d %b %y | %H:%M:%S"),
+    f'New York, USA': datetime.datetime.strftime(datetime.datetime.now(pendulum.timezone("US/Eastern")), "%d %b %y | %H:%M:%S")}
+keys = ['Lisbon, Portugal', 'Zurich, Switzerland', 'London, England', 'Tokyo, Japan','New York, USA']
 
 
 def real_time_forex(key, companies):
@@ -758,14 +762,10 @@ def gen_fx():
 fx = gen_fx()
 fx['USD'] = 1
 
-# TABLE
-
-
 ###################### APP Structure
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 server = app.server
-
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(id='main')
@@ -780,54 +780,67 @@ mainpage = html.Div([
             html.H1('Cryptocurrency Analysis Dashboard - Overview'),
             html.P('Business Case 5: Group E',
                    style={'padding-left': '0px', 'margin-top': '25px'}),
-        ], id='Title Box'),
-        dbc.Button(
-            "Detailed Analysis",
-            id="button1",
-            n_clicks=0,
-            outline=True, color="secondary",
-            className="me-1"
-            , href='/secpage'
-        ),
+            html.Img(src='assets/nova_ims.png', width=85, style={'float': 'right','margin-right':'80px','margin-top':'30px'}),
+            dbc.Button(
+                "Detailed Analysis",
+                id="button1",
+                n_clicks=0,
+                outline=True, color="secondary",
+                className="me-1"
+                , href='/secpage',style={'margin-bottom':'10px'}
+            ), ], id='Title Box'),
+        html.Br(),
+        html.P('Choose the currency: ', style={'display': 'inline-block','margin-right':'10px'}),
+        dcc.RadioItems(fx.columns, id='currency', value=fx.columns[-1], inline=True,
+                       style={'padding-right': '5px', 'display': 'inline-block', 'padding-bottom':'40px'}, className='radio', ),
     ], className='header'),
-
+    html.Br(),
     html.Div([  ## page content container
 
         html.Div([
             html.Div([
                 #### Clock & Date
-                html.P('Choose the currency:', style={'display': 'inline-block'}),
-                dcc.RadioItems(fx.columns, id='currency', value=fx.columns[-1], inline=True,
-                               style={'margin-right': '5px', 'display': 'inline-block'}),
-                html.Br(),
                 html.Div([
-                    html.H6('Timezones'),
-                    html.P(timezones[0]),
-                    html.P(timezones[1]),
-                    html.P(timezones[2]),
-                    html.P(timezones[3]),
-                ]),
+                    html.H4('Current Date and Time'),
+                    html.Br(),
+                    html.P(keys[0], className='title'),
+                    html.P(timezones[keys[0]], className='clock'),
+                    html.P(keys[1], className='title'),
+                    html.P(timezones[keys[1]], className='clock'),
+                    html.P(keys[2], className='title'),
+                    html.P(timezones[keys[2]], className='clock'),
+                    html.P(keys[3], className='title'),
+                    html.P(timezones[keys[3]], className='clock'),
+                    html.P(keys[4], className='title'),
+                    html.P(timezones[keys[4]], className='clock'),
+                ], style={'text-align': 'center'}),
                 html.Br(),
                 html.Br(),
-                html.Div([
-                ], id='table'),
+                html.H4('Registered values for the coins in the last 4 days', style={'padding-top':'20px','text-align': 'center','border-top': '4px dashed #dbd9d9'}),
+                html.Br(),
+                html.Br(),
+                html.Div([], id='table'),
             ]),
-        ], className='boxes', style={'width': '30%'}),
+        ], className='boxes', style={'width': '40%','margin-bottom':'20px'}),
 
         html.Div([
             #### Heatmap + Bar Plot
             html.Div([
-                html.H4('Monthly returns'),
+                html.H4('Monthly returns in the last 3 years', style={'text-align': 'center'}),
                 dcc.Graph(id='returns_heatmap'),
             ]),
             html.Br(),
+            html.Br(),
             html.Div([
-                html.H4('Cumulative Volume'),
+                html.H4('Volume Analysis', style={'text-align': 'center'}),
                 dcc.Graph(id='plot'),
-            ]),
-        ], className='boxes', style={'width': '30%'}),
+            ],style={'border-top': '4px dashed #dbd9d9','padding-top':'20px'}),
+        ], className='boxes', style={'width': '40%','margin-bottom':'20px'}),
 
         html.Div([
+            html.H4('Commodities Overview', style={'text-align': 'center'}),
+            html.Br(),
+            html.P("Select one commodity from the dropdown to further analyze"),
             dcc.Dropdown(options=commodities.index.unique(),
                          placeholder="Select a commodity to further analyze",
                          searchable=True,
@@ -835,10 +848,13 @@ mainpage = html.Div([
                          value='oil',
                          style={'border-color': 'gray', 'position': 'relative'}
                          ),
-            dcc.Graph(id='fig_'),
+            dcc.Graph(id='fig_',style={'border-bottom': '4px dashed #dbd9d9'}),
             html.Br(),
+            html.H4('Commodities Comparison', style={'text-align': 'center'}),
+            html.Br(),
+            html.P("Select 2 commodities to compare"),
             dcc.Dropdown(options=commodities.index.unique(),
-                         placeholder="Select a commodity to further analyze",
+                         placeholder="Select 2 commodities to further analyze",
                          searchable=True,
                          id='com_drop2',
                          multi=True,
@@ -846,11 +862,8 @@ mainpage = html.Div([
                          style={'border-color': 'gray', 'position': 'relative'}
                          ),
             dcc.Graph(id='subfig_')
-        ], className='boxes', style={'width': '30%'}),
-        dcc.Interval(
-            id='interval-component-1',
-            interval=500  # in milliseconds
-        ),
+        ], className='boxes', style={'width': '40%', 'margin-right': '20px','margin-bottom':'20px'}),
+
     ], style={'display': 'flex'}),
 ]),
 
@@ -863,6 +876,7 @@ secpage = html.Div([  # main container
             html.P('Business Case 5: Group E',
                    style={'padding-left': '0px', 'margin-top': '25px'}),
         ], id='Title Box'),
+        html.Img(src='assets/nova_ims.png', width=85, style={'float': 'right','margin-right':'80px','margin-top':'30px'}),
         dbc.Button(
             "Back to Overview",
             id="button",
@@ -877,12 +891,11 @@ secpage = html.Div([  # main container
                      searchable=True,
                      id='crypto_drop',
                      value='ADA',
-                     style={'border-color': 'gray', 'position': 'relative'}
+                     style={'border-color': 'gray', 'position': 'relative','margin-bottom':'10px','width':'50%'}
                      ),
-        html.P('Choose the currency: ', style={'display': 'inline-block'}),
+        html.P('Choose the currency: ', style={'display': 'inline-block','margin-right':'10px'}),
         dcc.RadioItems(fx.columns, id='currencysec', value=fx.columns[-1], inline=True,
-                       style={'margin-right': '5px', 'display': 'inline-block'}),
-        html.P('DISCLAMER: HOURLY PREDICTIONS E INDICATORS NÃO SÃO AFETADOS PELA MUDANÇA DE CURRENCY!',style={'font-weight': 'bold'}),
+                       style={'margin-right': '5px', 'display': 'inline-block'}, className='radio'),
     ], className='header'),
     html.Br(),
     #### First row
@@ -892,19 +905,46 @@ secpage = html.Div([  # main container
             html.Div(
                 [
                     html.Div(id='img'),
-                    html.H5(id='title'),
+                    html.H4(id='title'),
                     html.Br(),
                     html.Br(),
-                    html.P(id='text'),
-                    html.H5('Important Values'),
-                    html.P(id='pct_change'),
-                    html.P(id='pct_changem'),
-                    html.P(id='valuetd'),
-
-                ], className='boxes', style={'width': '40%', 'margin-right': '20px', 'margin-bottom': '20px'}),
+                    html.P(id='text', style={'margin-bottom': '50px'}),
+                    html.Div([html.H4('Important Values',style={'border-top': '4px dashed #dbd9d9','padding-top':'20px'}),
+                              html.Br(),
+                              html.P('% of change from the last price available', className='title1'),
+                              html.P(id='pct_change', className='box'),
+                              html.P('% of change from a month ago', className='title1'),
+                              html.P(id='pct_changem', className='box'),
+                              html.P('Value of the coin today', className='title1'),
+                              html.P(id='valuetd', className='box', style={'text-align': 'center'}),
+                              html.P('Value of the coin a month ago', className='title1'),
+                              html.P(id='valuem', className='box'), ], style={'text-align': 'center'}),
+                    html.Br(),
+                    html.Br(),
+                    html.H4('Sources',style={'text-align':'center','border-top': '4px dashed #dbd9d9','padding-top':'20px'}),
+                    html.Br(),
+                    html.Div([
+                        html.A(href='https://site.financialmodelingprep.com/',children=[
+                        html.Img(src='assets/source1.png', width=300)])],style={'display':'flex','justify-content':'center'}),
+                    html.Br(),
+                    html.Br(),
+                    html.Div([
+                        html.A(href='https://finance.yahoo.com/', children=[
+                            html.Img(src='assets/source2.png', width=200)])],
+                        style={'display': 'flex', 'justify-content': 'center'}),
+                    html.Br(),
+                    html.Br(),
+                    html.Div([
+                        html.A(href='https://fireart.studio/blog/15-best-crypto-web-design-inpirations/', children=[
+                            html.Img(src='assets/source3.png', width=300)])],
+                        style={'display': 'flex', 'justify-content': 'center'}),
+                ], className='boxes', style={'width': '30%', 'margin-right': '20px'}),
+                    html.Br(),
             #### Time Series graph
             html.Div(
                 [
+
+                    html.H4('Time Series with historical data', style={'text-align': 'center'}),
                     dcc.DatePickerRange(
                         id='datepick',
                         end_date=(date.today() - datetime.timedelta(1)),
@@ -915,27 +955,28 @@ secpage = html.Div([  # main container
                         display_format='MMM Do, YY',
                         style={'float': 'right'}
                     ),
-                    html.H5('Time Series with historical data'),
                     dcc.Graph(id='timeseries_', style={'margin-top': '30px', 'align': 'center'}),
                     html.Br(),
-                    html.H5('Time Series with predictions'),
-                    html.H6('Daily'),
-                    html.P('How many days to predict: ', style={'display': 'inline-block', 'margin-right': '10px'}),
+                    html.H4('Time Series with predictions', style={'text-align': 'center','border-top': '4px dashed #dbd9d9','padding-top':'20px'}),
+                    html.H5('Daily', style={'text-align': 'center'}),
+                    html.P('How many days to predict: ',
+                           style={'display': 'inline-block', 'margin-right': '10px', 'margin-left': '50px'}),
                     dcc.Input(id='time_input', type='number', min=1, max=90, step=1, value=7,
                               style={'display': 'inline-block'}),
                     dcc.Graph(id='pred_', style={'margin-top': '30px', 'align': 'center'}),
-                    html.H6('Hourly'),
+                    html.H5('Hourly', style={'text-align': 'center'}),
                     html.P('How many hours ahead to predict: ',
-                           style={'display': 'inline-block', 'margin-right': '10px'}),
+                           style={'display': 'inline-block', 'margin-right': '10px', 'margin-left': '50px'}),
                     dcc.Input(id='day_input', type='number', min=1, max=24, step=1, value=8,
                               style={'display': 'inline-block'}),
                     dcc.Graph(id='pred_d', style={'margin-top': '30px', 'align': 'center'}),
-                ], className='boxes', style={'width': '60%', 'margin-right': '20px'}),
+                ], className='boxes', style={'width': '90%', 'margin-right': '20px'}),
         ], style={'display': 'flex'}),
-
+html.Br(),
     html.Br(),
+    html.H1('Indicator Analysis',
+            style={'margin-left': '20px', 'text-align': 'center', 'text-decoration': 'underline'}),
     html.Br(),
-    html.H1('Indicators....', style={'margin-left': '20px'}),
     #### Indicators
     html.Div([
         html.Div(
@@ -951,7 +992,7 @@ secpage = html.Div([  # main container
         html.Div(
             [
                 html.H5('Volatility'),
-                dcc.Graph(id='volatility_', style={'margin-bottom': '10px', 'align': 'center'})
+                dcc.Graph(id='volatility_', style={'margin-bottom': '10px', 'align': 'center'}),
             ], className='boxes', style={'width': '35%', 'margin-right': '20px', 'margin-bottom': '20px'}),
 
     ], style={'display': 'flex'}),
@@ -970,7 +1011,7 @@ def candlestick(coin, ticker):
     # converts dolar OHLC values to a specified coin
     fx1 = fx.copy()
     fx1.index = pd.to_datetime(fx.index)
-    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date',how='outer').sort_values(
+    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date', how='outer').sort_values(
         ['ticker', 'date']).set_index(['ticker', 'date'])
     for i in fx1.columns:
         convert_df[f'{i}'] = convert_df[f'{i}'].fillna(method='ffill')
@@ -978,7 +1019,7 @@ def candlestick(coin, ticker):
     for i in ['open', 'close', 'high', 'low']:
         convert_df[f'{i}'] = convert_df[f'{i}'] * convert_df[f'{coin}']
 
-    convert_df2 = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date',how='outer').sort_values(
+    convert_df2 = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date', how='outer').sort_values(
         ['ticker', 'date']).set_index(['ticker', 'date'])
     for i in fx1.columns:
         convert_df2[f'{i}'] = convert_df2[f'{i}'].fillna(method='ffill')
@@ -1032,17 +1073,22 @@ def candlestick(coin, ticker):
     return_cm.loc[return_cm['Cumulative Volume'] < 0, 'Color'] = 'red'
 
     date1 = return_cm['Date'].min()
-    plot = px.bar(return_cm, y='Cumulative Volume', x='Date', title=f'Market:10 weeks cumulative volume',
+    plot = px.bar(return_cm, y='Cumulative Volume', x='Date', title=f'10 weeks cumulative volume',
                   color='Color',
                   color_discrete_sequence=return_cm.Color.unique())
     plot.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', })
 
     # TABLE
+    convert_df2.dropna(inplace=True)
     a = pd.DataFrame(convert_df2.loc[:, 'close']).reset_index()
     a['date'] = a['date'].astype('string')
-    b = a[pd.to_datetime(a['date']).dt.date >= (date.today() - datetime.timedelta(3))].set_index('ticker').pivot(
+    b = a[pd.to_datetime(a['date']).dt.date >= (date.today() - datetime.timedelta(4))].set_index('ticker').pivot(
         columns='date').round(4)
     b.columns = b.columns.get_level_values(1)
+    b.columns = [str((datetime.datetime.strptime(b.columns[0], '%Y-%M-%d') - datetime.timedelta(1)).date()),
+                 str((datetime.datetime.strptime(b.columns[1], '%Y-%M-%d') - datetime.timedelta(1)).date()),
+                 str((datetime.datetime.strptime(b.columns[2], '%Y-%M-%d') - datetime.timedelta(1)).date()),
+                 str((datetime.datetime.strptime(b.columns[3], '%Y-%M-%d') - datetime.timedelta(1)).date())]
 
     return fig, returns_heatmap, plot, dash_table.DataTable(data=b.reset_index().to_dict('records'),
                                                             columns=[{"name": i, "id": i} for i in
@@ -1051,25 +1097,26 @@ def candlestick(coin, ticker):
                                                                         'font-family': 'Arial, Helvetica, sans-serif'},
                                                             style_data_conditional=[
                                                                 {'if': {
-                                                                    'column_id': str(
-                                                                        date.today()),
-                                                                    'filter_query': '{' + str(
-                                                                        date.today()) + '} > {' + str(
-                                                                        date.today() - datetime.timedelta(1)) + '}'},
-                                                                    'backgroundColor': '#3D9970',
-                                                                    'color': 'white'},
+                                                                    'column_id': b.columns[3],
+                                                                    'filter_query': '{' + b.columns[3] + '} > {' + b.columns[2] + '}'},
+                                                                    'font-weight': 'bold',
+                                                                    'color': '#32CD32'},
                                                                 {'if': {
-                                                                    'column_id': str(
-                                                                        date.today()),
-                                                                    'filter_query': '{' + str(
-                                                                        date.today()) + '} < {' + str(
-                                                                        date.today() - datetime.timedelta(1)) + '}'},
-                                                                    'backgroundColor': 'red',
-                                                                    'color': 'white'}
+                                                                    'column_id': b.columns[3],
+                                                                    'filter_query': '{' + b.columns[3]+ '} < {' + b.columns[2] + '}'},
+                                                                    'font-weight': 'bold',
+                                                                    'color': 'red'},
+                                                                {'if': {
+                                                                    'column_id': b.columns[3],
+                                                                    'filter_query': '{' + b.columns[3] + '} = {' +
+                                                                                    b.columns[2] + '}'},
+                                                                    'color': '#EC9706',
+                                                                    'font-weight': 'bold',}
+
                                                             ],
                                                             style_as_list_view=True,
                                                             style_header={
-                                                                'backgroundColor': 'grey',
+                                                                'backgroundColor': '#EBEBEB',
                                                                 'fontWeight': 'bold'
                                                             },
                                                             )
@@ -1083,7 +1130,7 @@ def gen_commodities_plot(drop, coin, date='2019-01-01'):
     # converts dolar OHLC values to a specified coin
     fx1 = fx.copy()
     fx1.index = pd.to_datetime(fx.index)
-    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date',how='outer').sort_values(
+    convert_df = pd.merge(commodities.reset_index(), fx1.reset_index(), on='date', how='outer').sort_values(
         ['ticker', 'date']).set_index(['ticker', 'date'])
     for i in fx1.columns:
         convert_df[f'{i}'] = convert_df[f'{i}'].fillna(method='ffill')
@@ -1104,12 +1151,13 @@ def gen_commodities_plot(drop, coin, date='2019-01-01'):
     from plotly.subplots import make_subplots
     subfig = make_subplots(specs=[[{"secondary_y": True}]])
     fig = px.line(df[f'{ticker}'], y=f'{ticker}', title=f'{str(ticker).upper()} Price USD', labels={'y': f'{ticker}'})
-    fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', })
+    fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', }, showlegend=True)
+    fig.update_traces(name=ticker, showlegend=True)
     fig2 = px.line(df1[f'{ticker2}'], y=f'{ticker2}', title=f'{str(ticker2).upper()} Price USD', labels=dict(y=ticker2))
+    fig2.update_layout(showlegend=True)
+    fig2.update_traces(yaxis="y2", name=ticker2, showlegend=True)
 
-    fig2.update_traces(yaxis="y2")
-
-    subfig.add_traces(fig.data + fig2.data, )
+    subfig.add_traces(fig.data + fig2.data)
     subfig.layout.xaxis.title = "Date"
     subfig.layout.yaxis.title = f"{ticker}"
 
@@ -1119,7 +1167,7 @@ def gen_commodities_plot(drop, coin, date='2019-01-01'):
     subfig.for_each_trace(lambda t: t.update(line=dict(color=t.marker.color)))
 
     subfig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', },
-                         title=f'{ticker.upper()} and {ticker2.upper()} USD price evolution', )
+                         title=f'{ticker.upper()} and {ticker2.upper()} price evolution', showlegend=True)
     subfig.update_yaxes(showgrid=True, showline=True, gridwidth=1, gridcolor='#EBEBEB', linecolor='#EBEBEB')
     subfig.update_xaxes(showgrid=True, showline=True, gridwidth=1, gridcolor='#EBEBEB', linecolor='#EBEBEB',
                         rangeslider_visible=True)
@@ -1139,17 +1187,18 @@ def gen_commodities_plot(drop, coin, date='2019-01-01'):
           Output('pct_change', 'children'),
           Output('pct_changem', 'children'),
           Output('valuetd', 'children'),
+          Output('valuem', 'children'),
           Input('crypto_drop', 'value'),
           Input('datepick', 'start_date'),
           Input('datepick', 'end_date'),
           Input('time_input', 'value'),
           Input('day_input', 'value'),
           Input('currencysec', 'value'))
-def update_info(crypto, start_date, end_date, timestamp, daystamp,coin):
+def update_info(crypto, start_date, end_date, timestamp, daystamp, coin):
     # converts dolar OHLC values to a specified coin
     fx1 = fx.copy()
     fx1.index = pd.to_datetime(fx.index)
-    convert_df = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date',how='outer').sort_values(
+    convert_df = pd.merge(df_daily.reset_index(), fx1.reset_index(), on='date', how='outer').sort_values(
         ['ticker', 'date']).set_index(['ticker', 'date'])
     for i in fx1.columns:
         convert_df[f'{i}'] = convert_df[f'{i}'].fillna(method='ffill')
@@ -1158,19 +1207,21 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp,coin):
         convert_df[f'{i}'] = convert_df[f'{i}'] * convert_df[f'{coin}']
 
     df = df_daily.loc[[crypto], ['MOM_7', 'ROC_7']]
-    momentum = px.scatter(df, x="MOM_7", y="ROC_7", marginal_y="violin", trendline="lowess", template="simple_white")
+    momentum = px.scatter(df, x="MOM_7", y="ROC_7", marginal_y="violin", trendline="lowess", template="simple_white", color_discrete_sequence=['#268099'])
 
     df2 = df_daily.loc[[crypto], ['EMA_7', 'EMA_20']]
     df2['EMA_20'] = df2['EMA_20'] - df2['EMA_7']
     df2.index = df2.index.get_level_values(1)
-    overlap = px.area(df2[df2.index > '2022-01-01'], markers=True)
+    overlap = px.area(df2[df2.index > '2022-01-01'], markers=True, color_discrete_sequence=['#268099','#8E4585'])
 
     df3 = df_daily.loc[[crypto], ['ATR_7', 'STD_7', 'RSI_7']].dropna()
-    volatility = px.scatter(df3, x="ATR_7", y="STD_7", size="RSI_7", color='RSI_7', log_x=True, log_y=True, size_max=20)
+    volatility = px.scatter(df3, x="ATR_7", y="STD_7", size="RSI_7", color='RSI_7', log_x=True, log_y=True, size_max=20
+                            , color_continuous_scale='tealgrn')
 
     df4 = convert_df.loc[[crypto], ['close']].dropna()
     df4 = df4.loc[df4.index.get_level_values(0) == crypto].droplevel('ticker')[['close']]
     timeseries = px.line(df4[(df4.index <= end_date) & (df4.index >= start_date)])
+    timeseries.update_traces(line_color=info['Color'][info.index == crypto].item())
 
     title = info['extend'][info.index == crypto]
     img = html.Img(src=f"assets/{crypto}.png", width=50, style={'float': 'right'})
@@ -1193,12 +1244,13 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp,coin):
     timeseries.update_yaxes(showgrid=True, showline=True, gridwidth=1, gridcolor='#EBEBEB', linecolor='#EBEBEB')
 
     data = convert_df.loc[convert_df.index.get_level_values(0) == crypto]
-    data = data.loc[data.index.get_level_values(1) > '2022-01-01']
+    data = data.loc[data.index.get_level_values(1) > '2022-03-01']
 
     a, b = make_predictions(data, timestamp)
 
     pred = px.line(a[crypto], y=a[crypto]['Prediction'], color=a[crypto]['Format'],
-                   title=f'{crypto}, {timestamp - 1} days  price prediction', line_group=a[crypto]['Format'])
+                   title=f'{crypto}, {timestamp - 1} days  price prediction', line_group=a[crypto]['Format']
+                   , color_discrete_sequence=[info['Color'][info.index == crypto].item(), '#32CD32'])
     pred.update_yaxes(showgrid=True)
 
     pred.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', },
@@ -1211,13 +1263,15 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp,coin):
 
     # hourly predictions
     hour_df = gen_hour_data().dropna()
+    hour_df.index.set_levels(hour_df.index.levels[0].str.replace('LUNA', 'LUNA1'), level=0, inplace=True)
     data_h = hour_df.loc[hour_df.index.get_level_values(0) == crypto].copy()
     data_h = data_h.iloc[-100:]
 
     a, b = make_predictions_hour(data_h, daystamp)
 
     pred_d = px.line(a[f'{crypto}'], y=a[f'{crypto}']['Prediction'], color=a[f'{crypto}']['Format'],
-                     title=f'{crypto}, {daystamp - 1} hours  price prediction', line_group=a[f'{crypto}']['Format'])
+                     title=f'{crypto}, {daystamp - 1} hours  price prediction', line_group=a[f'{crypto}']['Format']
+                     , color_discrete_sequence=[info['Color'][info.index == crypto].item(), '#32CD32'])
     pred_d.update_yaxes(showgrid=True)
 
     pred_d.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)', },
@@ -1229,16 +1283,14 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp,coin):
                         rangeslider_visible=True)
 
     aux = convert_df.loc[convert_df.index.get_level_values(0) == crypto]['close']
-    pct_change = ('% of change from yesterday: ', np.round(((aux[aux.index.get_level_values(1) == str(
-        date.today()- datetime.timedelta(1))].item() - aux[aux.index.get_level_values(1) == str(
-        date.today() - datetime.timedelta(2))].item()) / (aux[aux.index.get_level_values(1) == str(
-        date.today() - datetime.timedelta(2))].item()) * 100), 4))
-    pct_changem = ('% of change from a month ago: ', np.round(((aux[aux.index.get_level_values(1) == str(
-        date.today()- datetime.timedelta(1))].item() - aux[aux.index.get_level_values(1) == str(
+    pct_change = str(np.round(((aux[aux.index[-1]] - aux[aux.index[-2]]) / aux[aux.index[-2]]) * 100, 4))
+    pct_changem = str(np.round(((aux[aux.index.get_level_values(1) == str(
+        date.today())].item() - aux[aux.index.get_level_values(1) == str(
         date.today() - datetime.timedelta(30))].item()) / (aux[aux.index.get_level_values(1) == str(
         date.today() - datetime.timedelta(30))].item()) * 100), 4))
-    valuetd = ('Value of the coin today: ', np.round(aux[aux.index.get_level_values(1) == str(date.today()- datetime.timedelta(1))].item(), 4))
-    return momentum, overlap, volatility, timeseries, title, img, text, pred, pred_d, pct_change, pct_changem, valuetd
+    valuetd = str(np.round(aux[aux.index.get_level_values(1) == str(date.today())].item(), 4))
+    valuem = str(np.round(aux[aux.index.get_level_values(1) == str(date.today() - datetime.timedelta(30))].item(), 4))
+    return momentum, overlap, volatility, timeseries, title, img, text, pred, pred_d, pct_change, pct_changem, valuetd,valuem
 
 
 @callback(Output('main', 'children'),

@@ -3,6 +3,9 @@ html, body {
   height: 100%;
   background-color: #EBEBEB ;
 }
+text{
+font-family: Arial, Helvetica, sans-serif;
+}
 
 .header{
   margin-right: 20px;
@@ -25,3 +28,34 @@ P{
  line-height: 1.8;
  text-align: justify;
  text-justify: inter-word;}
+
+.radio label {
+  padding: 1px 1px;
+  font-size: 15px;
+  margin-right: 10px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: black;
+}
+
+.title{
+    font-size:20px;
+    font-weight: bold;
+    text-align:center;}
+
+.title1{
+    font-size:18px;
+    text-align:center;}
+
+.clock{
+  font-size:18px;
+  border-radius: 5px;
+  background-color: #EBEBEB;
+  text-align: center;
+}
+.box{
+  font-size:18px;
+  border-radius: 5px;
+  background-color: #EBEBEB;
+  text-align: center;
+  padding: 20px 10px 20px 10px;
+  }
