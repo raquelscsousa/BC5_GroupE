@@ -1265,7 +1265,7 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp, coin):
     hour_df = gen_hour_data().dropna()
     hour_df.index.set_levels(hour_df.index.levels[0].str.replace('LUNA', 'LUNA1'), level=0, inplace=True)
     data_h = hour_df.loc[hour_df.index.get_level_values(0) == crypto].copy()
-    data_h = data_h.iloc[-(24 + daystamp):]
+    data_h = data_h.iloc[-24:]
 
     a, b = make_predictions_hour(data_h, daystamp)
 
