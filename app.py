@@ -1244,7 +1244,7 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp, coin):
     timeseries.update_yaxes(showgrid=True, showline=True, gridwidth=1, gridcolor='#EBEBEB', linecolor='#EBEBEB')
 
     data = convert_df.loc[convert_df.index.get_level_values(0) == crypto]
-    data = data.loc[data.index.get_level_values(1) > '2022-03-01']
+    data = data.loc[data.index.get_level_values(1) >= '2022-05-01']
 
     a, b = make_predictions(data, timestamp)
 
@@ -1265,7 +1265,7 @@ def update_info(crypto, start_date, end_date, timestamp, daystamp, coin):
     hour_df = gen_hour_data().dropna()
     hour_df.index.set_levels(hour_df.index.levels[0].str.replace('LUNA', 'LUNA1'), level=0, inplace=True)
     data_h = hour_df.loc[hour_df.index.get_level_values(0) == crypto].copy()
-    data_h = data_h.iloc[-100:]
+    data_h = data_h.iloc[-(24 + daystamp):]
 
     a, b = make_predictions_hour(data_h, daystamp)
 
