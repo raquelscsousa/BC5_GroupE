@@ -816,7 +816,7 @@ mainpage = html.Div([
                 ], style={'text-align': 'center'}),
                 html.Br(),
                 html.Br(),
-                html.H4('Registered values for the coins in the last 4 days', style={'padding-top':'20px','text-align': 'center','border-top': '4px dashed #dbd9d9'}),
+                html.H4('Latest values registered for the coins', style={'padding-top':'20px','text-align': 'center','border-top': '4px dashed #dbd9d9'}),
                 html.Br(),
                 html.Br(),
                 html.Div([], id='table'),
@@ -1085,10 +1085,10 @@ def candlestick(coin, ticker):
     b = a[pd.to_datetime(a['date']).dt.date >= (date.today() - datetime.timedelta(4))].set_index('ticker').pivot(
         columns='date').round(4)
     b.columns = b.columns.get_level_values(1)
-    b.columns = [str((datetime.datetime.strptime(b.columns[0], '%Y-%M-%d') - datetime.timedelta(1)).date()),
-                 str((datetime.datetime.strptime(b.columns[1], '%Y-%M-%d') - datetime.timedelta(1)).date()),
-                 str((datetime.datetime.strptime(b.columns[2], '%Y-%M-%d') - datetime.timedelta(1)).date()),
-                 str((datetime.datetime.strptime(b.columns[3], '%Y-%M-%d') - datetime.timedelta(1)).date())]
+    # b.columns = [str((datetime.datetime.strptime(b.columns[0], '%Y-%M-%d') - datetime.timedelta(1)).date()),
+    #              str((datetime.datetime.strptime(b.columns[1], '%Y-%M-%d') - datetime.timedelta(1)).date()),
+    #              str((datetime.datetime.strptime(b.columns[2], '%Y-%M-%d') - datetime.timedelta(1)).date()),
+    #              str((datetime.datetime.strptime(b.columns[3], '%Y-%M-%d') - datetime.timedelta(1)).date())]
 
     return fig, returns_heatmap, plot, dash_table.DataTable(data=b.reset_index().to_dict('records'),
                                                             columns=[{"name": i, "id": i} for i in
@@ -1097,19 +1097,19 @@ def candlestick(coin, ticker):
                                                                         'font-family': 'Arial, Helvetica, sans-serif'},
                                                             style_data_conditional=[
                                                                 {'if': {
-                                                                    'column_id': b.columns[3],
-                                                                    'filter_query': '{' + b.columns[3] + '} > {' + b.columns[2] + '}'},
+                                                                    'column_id': b.columns[-1],
+                                                                    'filter_query': '{' + b.columns[-1] + '} > {' + b.columns[-2] + '}'},
                                                                     'font-weight': 'bold',
                                                                     'color': '#32CD32'},
                                                                 {'if': {
-                                                                    'column_id': b.columns[3],
-                                                                    'filter_query': '{' + b.columns[3]+ '} < {' + b.columns[2] + '}'},
+                                                                    'column_id': b.columns[-1],
+                                                                    'filter_query': '{' + b.columns[-1]+ '} < {' + b.columns[-2] + '}'},
                                                                     'font-weight': 'bold',
                                                                     'color': 'red'},
                                                                 {'if': {
-                                                                    'column_id': b.columns[3],
-                                                                    'filter_query': '{' + b.columns[3] + '} = {' +
-                                                                                    b.columns[2] + '}'},
+                                                                    'column_id': b.columns[-1],
+                                                                    'filter_query': '{' + b.columns[-1] + '} = {' +
+                                                                                    b.columns[-2] + '}'},
                                                                     'color': '#EC9706',
                                                                     'font-weight': 'bold',}
 
